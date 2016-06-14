@@ -29,6 +29,8 @@ class Parser {
  public:
   Parser();
 
+  ~Parser() = default;
+  
   void Open(std::string path);
 
   //
@@ -42,7 +44,7 @@ class Parser {
   std::ifstream stream_;
 
   //
-  // Callbacks callbacks_;
+  Callbacks callbacks_;
 
   //
   uint32_t tick_;
@@ -59,7 +61,7 @@ class Parser {
   uint32_t ReadVarInt();
 
   //
-  void CallByDemoType(const TopMessage &message);
+  void CallByDemoType(const TopMessage &tmessage);
 
   //
   void OnCDemoFileHeader(const CDemoFileHeader&);

@@ -16,80 +16,47 @@ namespace dota {
 enum class Event {
   OnCDemoFileHeader,
   OnCDemoFileInfo,
+  OnCDemoStop,
 };
 
 
 class Callbacks {
  private:
+  Delegate<Event> callbacks_;
+
+  template<typename CDemoClass>
+  void Connect(Event e, std::function<void(CDemoClass)>&& func) {
+    callbacks_.Connect(e, std::move(func));
+  }
+
  public:
-  
-}
-// struct Function {
-//   virtual ~Function() = default;
-// };
+  template<typename CDemoClass, typename Function>
+  void Connect(Event e, Function&& func) {
+    this->Connect(e, std::function<void(CDemoClass)>(std::forward<Function>(func)));
+  }
 
-// template <typename BindArg, typename Object=void>
-// struct Callback : public Function {
-//   using Handler = std::function<void(const Object&, BindArg)>;
-//   Handler handler_;
-//   Callback(Handler handler) : handler_(handler) {}
-// };
+  template<typename CDemoClass, typename Function, typename Object>
+  void Connect(Event e, Function&& func, Object* obj) {
+    this->Connect(e, 
+        std::function<void(CDemoClass)>(
+            std::bind(std::forward<Function>(func), 
+                obj, std::placeholders::_1)));
+    // std::function<void(CDemoClass)> f = [=](CDemoClass m) {
+    //   obj->func(m);
+    // };
+  }
 
-// template <typename BindArg> 
-// struct Callback<BindArg, void> : public Function {
-//   using Handler = std::function<void(BindArg)>;
-//   Handler handler_;
-//   Callback(Handler handler) : handler_(handler) {}
-// };
+  template<typename CDemoClass>
+  void Call(Event e, CDemoClass m) {
+    callbacks_.Call(e, m);
+  }
 
-// class Callbacks {
-//  private:
-
-//   using FunctionPointer = std::unique_ptr<Function>;
-//   using Map = std::map<Event, std::vector<FunctionPointer>>;
-
-//   Map callbacks_;
-//  public:
-//   Callbacks() = default;
-
-//   void Connect(const Event& e, FunctionPointer&& fp) {
-//     callbacks_[e].push_back(std::move(fp));
-//   }
-
-//   template<typename... Args>
-//   void Call(const Event& e, Args&&... args) const {
-//     for (auto const& fp : callbacks_.at(e)) {
-//       const Function& base = *fp;
-//       const std::function<void(Args...)>& fun = static_cast<const Callback<Args...>&>(base).handler_;
-//       fun(std::forward<Args>(args)...);
-//     }
-//   }
-// };
-// template <typename MessageType>
-// class Callback {
-//  public:
-//   using Handler = std::function<void(MessageType)>;
-//   using Vector = std::vector<Handler>;
-//   using Cookie = typename Vector::const_iterator;
-
-//   Callback() = default;
-
-//   Cookie connect(Handler&& func) {
-//     functions_.push_back(std::move(func));
-//     return functions_.begin() + functions_.size() - 1;
-//   }
-
-//   template <typename... BindArgs, typename Sfinae = typename std::enable_if<(sizeof...(BindArgs)>1), void>::type>
-//   Cookie connect(BindArgs&&... args) {
-//     return connect(Handler(std::bind(std::forward<BindArgs>(args)...)));
-//   }
-
-//   void disconnect(Cookie which) {
-//     functions_.erase(which);
-//   }
-//  private:
-//   Vector functions_;
-// };
+  template<typename CDemoClass>
+  void Call(Event e, CDemoClass m, std::string data) {
+    m.ParseFromString(data);
+    Call(e, m);
+  }
+};
 
 }
 #endif

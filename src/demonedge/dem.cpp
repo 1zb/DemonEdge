@@ -11,11 +11,13 @@
 
 namespace dota{
   
+  // void test1(std::function<void()> func) {}
+
+  // void test2(CDemoFileHeader m) {}
+
   Parser::Parser() {
-    // std::function<void(const Parser&, CDemoFileHeader)> f = &Parser::OnCDemoFileHeader;
-    // new Callback<const CDemoFileHeader&, Parser>(&Parser::OnCDemoFileHeader);
-    // Connect<Parser, CDemoFileHeader>(Event::OnCDemoFileHeader, &Parser::OnCDemoFileHeader);
-    // Connect<Parser, CDemoFileInfo>(Event::OnCDemoFileInfo, &Parser::OnCDemoFileInfo);
+    callbacks_.Connect<CDemoFileHeader>(Event::OnCDemoFileHeader, &Parser::OnCDemoFileHeader, this);
+    callbacks_.Connect<CDemoFileInfo>(Event::OnCDemoFileInfo, &Parser::OnCDemoFileInfo, this);
   }
 
   void Parser::Open(std::string path) {
@@ -50,9 +52,15 @@ namespace dota{
     while (stream_.good()) {
       TopMessage message = Read();
       tick_ = message.tick;
+      // std::cout << message.kind << ' ' << message.tick << ' ' << stream_.tellg() << std::endl;
+
       CallByDemoType(message);
-      // std::cout << message.kind << ' ' << message.tick << std::endl;
+      if (message.kind == DEM_FileInfo) {
+        // std::cout << tick_ << std::endl;
+        break;
+      }
     }
+    std::cout << "end" << std::endl;
     // dt_classes_.output();
   }
 
@@ -67,47 +75,33 @@ namespace dota{
 
     uint32_t size = ReadVarInt();
 
-    std::string buffer;
-    buffer.reserve(size);
+    // std::string buffer(size, '\0');
+    // buffer.reserve(size);
+    char* buffer = new char[100000];
+    stream_.read(&buffer[0], size);
+    // delete buffer;
+    // std::copy_n(std::istreambuf_iterator<char>(stream_), size + 1, std::back_inserter<std::string>(buffer) );
 
-    // stream_.read(buffer.front(), size);
-    // std::cout << "before: " << stream_.tellg()<< std::endl;
-    // stream_.read(&buffer[0], size);
-    std::copy_n(std::istreambuf_iterator<char>(stream_), size + 1, std::back_inserter<std::string>(buffer) );
-    // std::cout << "after: " << stream_.tellg()<< std::endl;
-    // std::cout << buffer << std::endl;
+    // stream_.seekg(size, std::ios::cur);
 
-    // TopMessage message;
-    TopMessage message {compressed, tick, kind, buffer, size};;
+    TopMessage message {compressed, tick, kind, buffer, size};
 
-    if (compressed && snappy::IsValidCompressedBuffer(buffer.data(), size)) {
+    if (compressed && snappy::IsValidCompressedBuffer(buffer, size)) {
       std::size_t size_uncompressed;
-      if (!snappy::GetUncompressedLength(buffer.data(), size, &size_uncompressed)) {
+      if (!snappy::GetUncompressedLength(buffer, size, &size_uncompressed)) {
         std::cout << "cannot get uncompressed length" << std::endl;
       }
       message.data.clear();
       message.data.resize(size_uncompressed);
-      if (!snappy::RawUncompress(buffer.data(), size, &message.data[0])) {
+      if (!snappy::RawUncompress(buffer, size, &message.data[0])) {
         std::cout << "uncompress unsuccesful" << std::endl;
       }
     } 
+    // buffer.clear();
+    delete buffer;
     return message;
   }
 
-  // //
-  // template <typename CDemoClass>
-  // void Parser::Connect(Event e, void (*f) (const CDemoClass&)) {
-  //   callbacks_.Connect(e, 
-  //       std::unique_ptr<Callback<const CDemoClass&>>(new Callback<const CDemoClass&>(f)));
-  // }
-
-  // //
-  // template <typename Object, typename CDemoClass>
-  // void Parser::Connect(Event e, void (Object::*f) (const CDemoClass&)) {
-  //   callbacks_.Connect(e, 
-  //       std::unique_ptr<Callback<const CDemoClass&>>(new Callback<const CDemoClass&>(f)));
-  // }
-  //
   uint32_t Parser::ReadVarInt() {
     char buffer;
     uint32_t count = 0;
@@ -125,23 +119,28 @@ namespace dota{
   }
 
   //
-  void Parser::CallByDemoType(const TopMessage &message) {
-    switch (message.kind) {
+  void Parser::CallByDemoType(const TopMessage &tmessage) {
+    switch (tmessage.kind) {
       case DEM_FileHeader: {
-        std::cout << "header: " << std::endl;
         CDemoFileHeader event;
-        event.ParseFromString(message.data);
-        // callbacks_.Call(Event::OnCDemoFileHeader, event);
+        // std::cout << "header " <<  tmessage.tick << std::endl;
+        callbacks_.Call(Event::OnCDemoFileHeader, event, tmessage.data);
         break;
       }
       case DEM_FileInfo: {
         CDemoFileInfo event;
-        std::cout << "fileinfo: " << std::endl;
-        event.ParseFromString(message.data);
-        // callbacks_.Call(Event::OnCDemoFileInfo, event);
+        // std::cout << "fileinfo " << tmessage.tick << std::endl;
+        callbacks_.Call(Event::OnCDemoFileHeader, event, tmessage.data);
+        break;
+      }
+      case DEM_Stop: {
+        CDemoStop event;
+        // std::cout << "stop " <<  tmessage.tick << std::endl;
+        callbacks_.Call(Event::OnCDemoStop, event, tmessage.data);
         break;
       }
       default: 
+        // std::cout << tick_ << std::endl;
         break;
     }
   }

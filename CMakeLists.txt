@@ -1,7 +1,7 @@
-cmake_minimum_required ( VERSION 3.0 )
+cmake_minimum_required ( VERSION 2.8 )
 project ( DemonEdge )
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/CMake/Modules)
 
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
@@ -18,7 +18,7 @@ execute_process(COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} ${ProtoFiles}
     --proto_path=${CMAKE_SOURCE_DIR}/proto
 )
 
-SET(CMAKE_CXX_FLAGS "--std=c++11")
+SET(CMAKE_CXX_FLAGS "--std=c++11 -lpthread")
 
 FILE(GLOB PROTO_SOURCES ${CMAKE_SOURCE_DIR}/src/demonedge/*.pb.cc)
 FILE(GLOB CORE_SOURCES ${CMAKE_SOURCE_DIR}/src/demonedge/*.cpp)

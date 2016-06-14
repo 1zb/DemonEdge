@@ -5,52 +5,55 @@
 
 #include <functional>
 #include <vector>
-// #include <map>
+#include <map>
 #include <unordered_map>
+#include <memory>
+#include <iostream>
 
 namespace dota {
 
-template <typename Object, typename... Params>
+template <typename Object>
 class Delegate {
  private:
-  // typedef std::function<void(Params...)> Handler;
-  using Handler = std::function<void(Params...)>;
-  // typedef std::vector<Handler> Vector;
-  using Vector = std::vector<Handler>;
-  using Map = std::unordered_map<Object, Vector>;
-  // Vector functions_;
+  class Base {
+   public:
+    virtual ~Base() {}
+  };
+
+  template <typename... BindArgs>
+  class Derived : public Base {
+   private:
+    using Handler = std::function<void(BindArgs...)>;
+    Handler handler_;
+   public:
+    explicit Derived(Handler handler) : handler_(handler) {}
+
+    void Call(BindArgs&&... args) {
+      handler_(args...);
+    }
+  };
+
+  using Vector = std::vector<std::unique_ptr<Base>>;
+  using Map = std::map<Object, Vector>;
+
   Map functions_;
+
  public:
-  // typedef typename Vector::const_iterator cookie;
   using Cookie = typename Vector::const_iterator;
 
-  // cookie connect(Handler&& func) {
-  //   functions_.push_back(std::move(func));
-  //   return functions_.begin() + functions_.size() - 1;
-  // }
-  Cookie Connect(Object obj, Handler&& func) {
-    functions_.at(obj).push_back(std::move(func));
-    return functions_.at(obj).begin() + functions_.at(obj).size() - 1;
+  template <typename... BindArgs>
+  void Connect(Object obj, std::function<void(BindArgs...)>&& func) {
+    functions_[obj].emplace_back(new Derived<BindArgs...>(func));
+    // std::cout << functions_.at(obj).size() << std::endl;
   }
 
-  template <typename... BindArgs, typename Sfinae = typename std::enable_if<(sizeof...(BindArgs)>1), void>::type>
-  Cookie Connect(Object obj, BindArgs&&... args) {
-    return Connect(obj, Handler(std::bind(std::forward<BindArgs>(args)...)));
-  }
-
-  // void disconnect(Cookie which) {
-  //   functions_.erase(which);
-  // }
-
-  // template <typename ... Args> void operator()(Args...args) {
-  //   for(auto const& handler : functions_)
-  //     handler(args...);
-  // }
   template <typename... Args>
-  void Call(Object obj, Args... args) {
-    for (auto const& handler : functions_.at(obj))
-      handler(args...);
+  void Call(Object obj, Args&&... args) {
+    for (auto&& handler : functions_[obj]) {
+      auto func = static_cast<Derived<Args...>*>(handler.get());
+      func->Call(std::forward<Args>(args)...);
+    }
   }
 };
-}
-#endif
+}  // namespace dota
+#endif  // SRC_DEMONEDGE_DELEGATE_HPP_
