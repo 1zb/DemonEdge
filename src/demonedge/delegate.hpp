@@ -29,6 +29,10 @@ class Delegate {
     explicit Derived(Handler handler) : handler_(handler) {}
 
     void Call(BindArgs&&... args) {
+      // std::string name = handler_.target_type().name();
+      // std::string::size_type n = name.find("CSVCMsg_ServerInfo");
+      // if (n != std::string::npos)
+      // std::cout << handler_.target_type().name() << std::endl;
       handler_(args...);
     }
   };
@@ -52,6 +56,13 @@ class Delegate {
     for (auto&& handler : functions_[obj]) {
       auto func = static_cast<Derived<Args...>*>(handler.get());
       func->Call(std::forward<Args>(args)...);
+    }
+  }
+
+  void Debug() {
+    for (auto&& item : functions_) {
+      // std::cout << "debug" << std::endl;
+      std::cout << static_cast<int>(item.first) << ' ' << item.second.size() << std::endl;
     }
   }
 };

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 URL=https://raw.githubusercontent.com/
 USERNAME=SteamDatabase
@@ -6,11 +6,13 @@ PROJECT=GameTracking
 REPO_PATH=Protobufs/dota
 FOLDER=proto
 
-FILES=(
+FILES=( 
     "demo.proto" 
     "netmessages.proto" 
     "network_connection.proto" 
     "networkbasetypes.proto"
+    "dota_usermessages.proto"
+    "dota_commonmessages.proto"
 )
 
 # mkdir ${FOLDER}

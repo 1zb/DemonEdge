@@ -16,7 +16,18 @@ namespace dota {
 enum class Event {
   OnCDemoFileHeader,
   OnCDemoFileInfo,
+  OnCDemoSyncTick,
+  OnCDemoSendTables,
+  OnCDemoClassInfo,
+  OnCDemoStringTables,
+  OnCDemoPacket,
+  OnCDemoSignonPacket,
+  OnCDemoFullPacket,
   OnCDemoStop,
+
+  OnCSVCMsg_ServerInfo,
+  OnCSVCMsg_CreateStringTable,
+  OnCSVCMsg_PacketEntities,
 };
 
 
@@ -53,8 +64,15 @@ class Callbacks {
 
   template<typename CDemoClass>
   void Call(Event e, CDemoClass m, std::string data) {
-    m.ParseFromString(data);
+    // m.ParseFromString(data);
+    if (!m.ParseFromString(data)) {
+      std::exit(0);
+    }
     Call(e, m);
+  }
+
+  void Debug() {
+    callbacks_.Debug();
   }
 };
 

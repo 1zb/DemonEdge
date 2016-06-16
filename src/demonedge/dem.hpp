@@ -4,8 +4,12 @@
 #include <fstream>
 
 #include "callback.hpp"
+#include "datatables.hpp"
+#include "stringtables.hpp"
 
 #include "demo.pb.h"
+#include "netmessages.pb.h"
+
 namespace dota {
 
 struct TopMessage {
@@ -39,6 +43,7 @@ class Parser {
   //
   TopMessage Read();
 
+  // std::map<int, int> packet_;
  private:
   //
   std::ifstream stream_;
@@ -49,13 +54,11 @@ class Parser {
   //
   uint32_t tick_;
 
-  // //
-  // template <typename CDemoClass>
-  // void Connect(Event e, void (*f) (const CDemoClass&));
-
-  // //
-  // template <typename Object, typename CDemoClass>
-  // void Connect(Event e, void (Object::*f) (const CDemoClass&));
+  //
+  datatable::Datatables datatables_;
+  
+  //
+  stringtable::StringTables stringtables_;
   
   // varint
   uint32_t ReadVarInt();
@@ -64,10 +67,40 @@ class Parser {
   void CallByDemoType(const TopMessage &tmessage);
 
   //
+  void CallbyPacketType(const EmbeddedMessage &emessage);
+
+  // DEM_FileHeader = 1
   void OnCDemoFileHeader(const CDemoFileHeader&);
 
-  //
+  // DEM_FileInfo = 2
   void OnCDemoFileInfo(const CDemoFileInfo&);
+
+  // DEM_SyncTick = 3;
+  void OnCDemoSyncTick(const CDemoSyncTick&);
+
+  // DEM_SendTables = 4;
+  void OnCDemoSendTables(const CDemoSendTables&);
+
+  // DEM_ClassInfo = 5;
+  void OnCDemoClassInfo(const CDemoClassInfo&);
+
+  // DEM_StringTables = 6;
+  void OnCDemoStringTables(const CDemoStringTables&);
+
+  // DEM_Packet = 7
+  void OnCDemoPacket(const CDemoPacket&);
+
+  // DEM_FullPacket = 13
+  void OnCDemoFullPacket(const CDemoFullPacket&);
+
+  // svc_ServerInfo = 40;
+  void OnCSVCMsg_ServerInfo(const CSVCMsg_ServerInfo&);
+
+  // svc_CreateStringTable = 44;
+  void OnCSVCMsg_CreateStringTable(const CSVCMsg_CreateStringTable&);
+
+  // svc_PacketEntities = 55;
+  void OnCSVCMsg_PacketEntities(const CSVCMsg_PacketEntities&);
 };
 
 }
